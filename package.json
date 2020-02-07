@@ -1,0 +1,24 @@
+{
+  "name": "sqs-mayhem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BrutalSimplicity/sqs-mayhem.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BrutalSimplicity/sqs-mayhem/issues"
+  },
+  "homepage": "https://github.com/BrutalSimplicity/sqs-mayhem#readme",
+  "devDependencies": {
+    "serverless": "^1.63.0",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
+  }
+}
