@@ -1,4 +1,4 @@
-import { Consumer } from './sqs-consumer/src/consumer';
+import { Consumer } from 'sqs-consumer';
 
 const app = Consumer.create({
     queueUrl: '',

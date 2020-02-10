@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "sls deploy -c serverless-multi-stack-pipeline.yml",
+    "destroy": "sls remove -c serverless-multi-stack-pipeline.yml"
   },
   "repository": {
     "type": "git",
@@ -17,14 +19,14 @@
   },
   "homepage": "https://github.com/BrutalSimplicity/sqs-mayhem#readme",
   "devDependencies": {
-    "@types/aws-sdk": "^2.7.0",
+    "@types/js-yaml": "^3.12.2",
     "@types/node": "^13.7.0",
+    "@types/serverless": "^1.18.4",
+    "serverless": "^1.63.0",
     "ts-node": "^8.6.2",
     "typescript": "^3.7.5"
   },
   "dependencies": {
-    "aws-sdk": "^2.613.0",
-    "dotenv": "^8.2.0",
-    "sqs-consumer": "^5.4.0"
+    "js-yaml": "^3.13.1"
   }
 }

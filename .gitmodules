@@ -1,4 +1,0 @@
-[submodule "sqs-consumer"]
-	path = sqs-consumer
-	url = git@github.com:BrutalSimplicity/sqs-consumer.git
-	branch = master

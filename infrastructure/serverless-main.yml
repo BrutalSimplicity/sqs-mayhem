@@ -1,0 +1,72 @@
+service:
+  name: sqs-mayhem-main
+
+provider:
+  name: aws
+  deploymentBucket:
+    name: ${cf:sqs-mayhem-multi-stack-pipeline-${opt:stage, 'dev'}.ServerlessDeploymentBucketName}
+
+custom:
+  vpc:
+    VpcId: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.VpcId}
+    PrivateSubnetA: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.PrivateSubnetA}
+    PrivateSubnetB: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.PrivateSubnetB}
+
+resources:
+  Resources:
+    Queue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: MayhemQueue
+        ReceiveMessageWaitTimeSeconds: 10
+        VisibilityTimeout: 120
+
+    RdsSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Aurora Postgresql Serverless Security Group
+        VpcId: ${self:custom.vpc.VpcId}
+        Tags:
+          - Key: Name
+            Value: RdsSecurityGroup
+    RdsSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: Aurora Postgresql Serverless Subnet Group
+        SubnetIds:
+          - ${self:custom.vpc.PrivateSubnetA}
+          - ${self:custom.vpc.PrivateSubnetB}
+        Tags:
+          - Key: Name
+            Value: RdsSubnetGroup
+    RdsCluster:
+      Type: AWS::RDS::DBCluster
+      Properties:
+        MasterUsername: ${env:PG_USER, ''}
+        MasterUserPassword: ${env:PG_PASSWORD, ''}
+        DBClusterIdentifier: sqs-mayhem-cluster
+        Engine: aurora-postgresql
+        EngineVersion: "10.7"
+        EngineMode: serverless
+        ScalingConfiguration:
+          AutoPause: true
+          MinCapacity: 2
+          MaxCapacity: 32
+          SecondsUntilAutoPause: 3600
+        DBSubnetGroupName: !Ref RdsSubnetGroup
+        VpcSecurityGroupIds:
+          - !GetAtt RdsSecurityGroup.GroupId
+
+  Outputs:
+    QueueArn:
+      Value:
+        !GetAtt Queue.Arn
+    QueueName:
+      Value:
+        !GetAtt Queue.QueueName
+    RdsEnpointAddress:
+      Value:
+        !GetAtt RdsCluster.Endpoint.Address
+    RdsSecurityGroupId:
+      Value:
+        !GetAtt RdsSecurityGroup.GroupId

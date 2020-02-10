@@ -1,0 +1,65 @@
+service:
+  name: sqs-mayhem-vpc
+
+provider:
+  name: aws
+  deploymentBucket:
+    name: ${cf:sqs-mayhem-multi-stack-pipeline-${opt:stage, 'dev'}.ServerlessDeploymentBucketName}
+
+resources:
+  Resources:
+    Vpc:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: 10.0.0.0/24
+        Tags:
+          - Key: Name
+            Value: SqsMayhemVpc
+    PrivateSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: us-east-1a
+        VpcId: !Ref Vpc
+        CidrBlock: 10.0.0.0/26
+        Tags:
+          - Key: Name
+            Value: SqsMayhemPrivateSubnetA
+    PrivateSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: us-east-1b
+        VpcId: !Ref Vpc
+        CidrBlock: 10.0.0.64/26
+        Tags:
+          - Key: Name
+            Value: SqsMayhemPrivateSubnetB
+    PublicSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: us-east-1a
+        VpcId: !Ref Vpc
+        CidrBlock: 10.0.0.128/26
+        Tags:
+          - Key: Name
+            Value: SqsMayhemPublicSubnetA
+    PublicSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: us-east-1b
+        VpcId: !Ref Vpc
+        CidrBlock: 10.0.0.192/26
+        Tags:
+          - Key: Name
+            Value: SqsMayhemPublicSubnetB
+  
+  Outputs:
+    VpcId:
+      Value: !Ref Vpc
+    PublicSubnetA:
+      Value: !Ref PublicSubnetA
+    PublicSubnetB:
+      Value: !Ref PublicSubnetB
+    PrivateSubnetA:
+      Value: !Ref PrivateSubnetA
+    PrivateSubnetB:
+      Value: !Ref PrivateSubnetB

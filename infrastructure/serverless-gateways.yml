@@ -1,0 +1,106 @@
+service:
+  name: sqs-mayhem-gateways
+
+provider:
+  name: aws
+  deploymentBucket:
+    name: ${cf:sqs-mayhem-multi-stack-pipeline-${opt:stage, 'dev'}.ServerlessDeploymentBucketName}
+
+custom:
+  vpc:
+    VpcId: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.VpcId}
+    PublicSubnetA: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.PublicSubnetA}
+    PublicSubnetB: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.PublicSubnetB}
+    PrivateSubnetA: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.PrivateSubnetA}
+    PrivateSubnetB: ${cf:sqs-mayhem-vpc-${opt:stage, 'dev'}.PrivateSubnetB}
+
+resources:
+  Resources:
+    InternetGateway:
+      Type: AWS::EC2::InternetGateway
+    VpcGatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        VpcId: ${self:custom.vpc.VpcId}
+        InternetGatewayId: !Ref InternetGateway
+    
+    RouteTablePublic:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: ${self:custom.vpc.VpcId}
+    RoutePublic:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref RouteTablePublic
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId: !Ref InternetGateway
+    RouteTableAssociationPublicSubnetA:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: ${self:custom.vpc.PublicSubnetA}
+        RouteTableId: !Ref RouteTablePublic
+    RouteTableAssociationPublicSubnetB:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: ${self:custom.vpc.PublicSubnetB}
+        RouteTableId: !Ref RouteTablePublic
+    
+    ElasticIpA:
+      Type: AWS::EC2::EIP
+      DependsOn: VpcGatewayAttachment
+      Properties:
+        Domain: vpc
+    NatGatewayA:
+      Type: AWS::EC2::NatGateway
+      DependsOn: ElasticIpA
+      Properties:
+        AllocationId: !GetAtt ElasticIpA.AllocationId
+        SubnetId: ${self:custom.vpc.PublicSubnetA}
+    RouteTablePrivateA:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: ${self:custom.vpc.VpcId}
+    RoutePrivateA:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref RouteTablePrivateA
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NatGatewayA
+    RouteTableAssociationPrivateSubnetA:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: ${self:custom.vpc.PrivateSubnetA}
+        RouteTableId: !Ref RouteTablePrivateA
+
+    ElasticIpB:
+      Type: AWS::EC2::EIP
+      DependsOn: VpcGatewayAttachment
+      Properties:
+        Domain: vpc
+    NatGatewayB:
+      Type: AWS::EC2::NatGateway
+      DependsOn: ElasticIpB
+      Properties:
+        AllocationId: !GetAtt ElasticIpB.AllocationId
+        SubnetId: ${self:custom.vpc.PublicSubnetB}
+    RouteTablePrivateB:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: ${self:custom.vpc.VpcId}
+    RoutePrivateB:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref RouteTablePrivateB
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NatGatewayB
+    RouteTableAssociationPrivateSubnetB:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: ${self:custom.vpc.PrivateSubnetB}
+        RouteTableId: !Ref RouteTablePrivateB
+  
+  Outputs:
+    ElasticIpA:
+      Value: !Ref ElasticIpA
+    ElasticIpB:
+      Value: !Ref ElasticIpB

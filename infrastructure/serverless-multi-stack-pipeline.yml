@@ -1,0 +1,20 @@
+service:
+  name: sqs-mayhem-multi-stack-pipeline
+
+provider:
+  name: aws
+
+plugins:
+  - ./plugins/multi-stack-pipeline-plugin
+
+custom:
+  multi-stack-pipeline-plugin:
+    name: multi-stack-pipeline
+    stacks:
+      serverless-vpc.yml:
+      serverless-gateways.yml:
+      serverless-main.yml:
+      serverless-bastion.yml:
+
+    regions:
+      us-east-1:

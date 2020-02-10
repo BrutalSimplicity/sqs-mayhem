@@ -1,0 +1,16 @@
+name: multi-stack-pipeline
+stacks:
+  serverless-base.yml:
+  serverless-vpc.yml:
+  serverless-gateways.yml:
+  serverless-main.yml:
+  serverless-bastion.yml:
+    key-name: bastion-host-key
+    public-rsa-key: ~/.ssh/id_rsa.pub
+    pre-deploy:
+      handler: ./deploy/importPrivateKey
+    post-deploy: 
+      handler: ./deploy/deletePrivateKey
+
+regions:
+  us-east-1:

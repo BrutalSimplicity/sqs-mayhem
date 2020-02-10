@@ -1,0 +1,93 @@
+service:
+  name: sqs-mayhem-bastion
+
+provider:
+  name: aws
+  deploymentBucket:
+    name: ${cf:sqs-mayhem-multi-stack-pipeline-${opt:stage, 'dev'}.ServerlessDeploymentBucketName}
+
+plugins:
+  - ./plugins/key-pair-plugin
+
+custom:
+  stage: ${opt:stage, 'dev'}
+  vpc:
+    VpcId: ${cf:sqs-mayhem-vpc-${self:custom.stage}.VpcId}
+    PublicSubnetA: ${cf:sqs-mayhem-vpc-${self:custom.stage}.PublicSubnetA}
+    PublicSubnetB: ${cf:sqs-mayhem-vpc-${self:custom.stage}.PublicSubnetB}
+    PrivateSubnetA: ${cf:sqs-mayhem-vpc-${self:custom.stage}.PrivateSubnetA}
+    PrivateSubnetB: ${cf:sqs-mayhem-vpc-${self:custom.stage}.PrivateSubnetB}
+    RdsSecurityGroupId: ${cf:sqs-mayhem-main-${self:custom.stage}.RdsSecurityGroupId}
+  key-pair-plugin:
+    key-name: sqs-mayhem-bastion-host-key-${self:custom.stage}
+    public-rsa-key: ~/.ssh/id_rsa.pub
+
+resources:
+  Resources:
+    BastionHostSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: EC2 Bastion Host Security Group
+        VpcId: ${self:custom.vpc.VpcId}
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 5432
+            ToPort: 5432
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: icmp
+            FromPort: -1
+            ToPort: -1
+            CidrIp: 0.0.0.0/0
+        Tags:
+          - Key: Name
+            Value: BastionHostSecurityGroup
+    RdsSecurityGroupIngress:
+      Type: AWS::EC2::SecurityGroupIngress
+      Properties:
+        GroupId: ${self:custom.vpc.RdsSecurityGroupId}
+        IpProtocol: tcp
+        SourceSecurityGroupId: !GetAtt BastionHostSecurityGroup.GroupId
+        FromPort: 5432
+        ToPort: 5432
+    BastionHostSecurityGroupEgress:
+      Type: AWS::EC2::SecurityGroupEgress
+      Properties:
+        GroupId: !GetAtt BastionHostSecurityGroup.GroupId
+        IpProtocol: tcp
+        DestinationSecurityGroupId: ${self:custom.vpc.RdsSecurityGroupId}
+        FromPort: 5432
+        ToPort: 5432
+    SqsMayhemBastionHost:
+      Type: AWS::EC2::Instance
+      Properties:
+        KeyName: ${self:custom.key-pair-plugin.key-name}
+        ImageId: ami-046842448f9e74e7d
+        InstanceType: t3a.nano
+        Monitoring: true
+        SubnetId: ${self:custom.vpc.PublicSubnetA}
+        SecurityGroupIds:
+          - !GetAtt BastionHostSecurityGroup.GroupId
+        UserData: 
+          Fn::Base64: |
+            #!bin/bash
+            sed 's/#AllowTcpForwarding/AllowTcpForwarding/g' /etc/ssh/sshd_config > /etc/ssh/sshd_config.tmp
+            rm -f /etc/ssh/sshd_config
+            mv /etc/ssh/sshd_config.tmp /etc/ssh/sshd_config
+
+    BastionHostElasticIp:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: vpc
+        InstanceId: !Ref SqsMayhemBastionHost
+
+
+
+  Outputs:
+    BastionHost:
+      Value: !Ref SqsMayhemBastionHost
+    BastionIp:
+      Value: !Ref BastionHostElasticIp
